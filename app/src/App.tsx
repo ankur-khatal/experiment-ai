@@ -20,6 +20,9 @@ const NAV_ITEMS: { key: Exclude<Screen, 'welcome'>; label: string; icon: string 
   { key: 'settings', label: 'Settings', icon: '⚙' },
 ];
 
+// Screens that should show the persistent camera feed at the top
+const CAMERA_SCREENS: Screen[] = ['home', 'calibration'];
+
 export function App() {
   const isOnboarded = localStorage.getItem('experiment-ai-onboarded') === 'true';
   const [screen, setScreen] = useState<Screen>(isOnboarded ? 'home' : 'welcome');
@@ -100,6 +103,8 @@ export function App() {
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDark);
   }, [isDark]);
+
+  const showCamera = CAMERA_SCREENS.includes(screen);
 
   // Welcome screen
   if (screen === 'welcome') {
@@ -188,79 +193,100 @@ export function App() {
           onToggle={handleToggle}
         />
         <main className="flex-1 p-6 overflow-auto">
-          <AnimatePresence mode="wait">
-            {screen === 'home' && (
-              <motion.div key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <div className="max-w-2xl mx-auto space-y-6">
+          <div className="max-w-3xl mx-auto space-y-6">
+            {/*
+              Persistent camera feed — always rendered, never unmounted.
+              Visible on Home and Calibration screens.
+              Uses CSS visibility to keep the stream alive when on other tabs.
+            */}
+            <div className={showCamera ? 'block' : 'hidden'}>
+              <CameraFeed
+                videoRef={camera.videoRef}
+                canvasRef={camera.canvasRef}
+                isActive={camera.isActive}
+                onStart={handleStartCamera}
+                error={camera.error}
+              />
+
+              {/* Quick stats below camera on Home */}
+              {screen === 'home' && engine.isReady && engine.trackingStatus && (
+                <div className="grid grid-cols-3 gap-3 mt-4">
+                  {[
+                    { label: 'Confidence', value: `${((engine.trackingStatus.confidence ?? 0) * 100).toFixed(0)}%` },
+                    { label: 'FPS', value: String(engine.trackingStatus.fps) },
+                    { label: 'Lighting', value: engine.trackingStatus.lightingQuality },
+                  ].map(({ label, value }) => (
+                    <div key={label} className="rounded-lg border border-zinc-800 bg-zinc-900 p-3">
+                      <p className="text-xs text-zinc-500 mb-1">{label}</p>
+                      <p className="font-mono text-lg text-zinc-200 capitalize">{value}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Screen-specific content below the camera */}
+            <AnimatePresence mode="wait">
+              {screen === 'home' && (
+                <motion.div key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                   <div>
                     <h2 className="text-xl font-semibold text-zinc-100 mb-1">Live View</h2>
                     <p className="text-sm text-zinc-500">
                       {engine.isReady
                         ? 'Face tracking active — try blinking or moving your head'
-                        : 'Start the camera to begin'}
+                        : 'Start the camera to begin face gesture tracking'}
                     </p>
                   </div>
-                  <CameraFeed
-                    videoRef={camera.videoRef}
-                    canvasRef={camera.canvasRef}
-                    isActive={camera.isActive}
-                    onStart={handleStartCamera}
-                    error={camera.error}
-                  />
-                  {engine.isReady && engine.trackingStatus && (
-                    <div className="grid grid-cols-3 gap-3">
-                      {[
-                        { label: 'Confidence', value: `${((engine.trackingStatus.confidence ?? 0) * 100).toFixed(0)}%` },
-                        { label: 'FPS', value: String(engine.trackingStatus.fps) },
-                        { label: 'Lighting', value: engine.trackingStatus.lightingQuality },
-                      ].map(({ label, value }) => (
-                        <div key={label} className="rounded-lg border border-zinc-800 bg-zinc-900 p-3">
-                          <p className="text-xs text-zinc-500 mb-1">{label}</p>
-                          <p className="font-mono text-lg text-zinc-200 capitalize">{value}</p>
-                        </div>
-                      ))}
+                </motion.div>
+              )}
+
+              {screen === 'calibration' && (
+                <motion.div key="calibration" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                  {!camera.isActive && (
+                    <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-4 mb-4">
+                      <p className="text-sm text-amber-400">
+                        Start the camera above to begin calibration.
+                      </p>
                     </div>
                   )}
-                </div>
-              </motion.div>
-            )}
-            {screen === 'calibration' && (
-              <motion.div key="calibration" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <CalibrationWizard
-                  onComplete={handleCalibrationComplete}
-                  trackingStatus={engine.trackingStatus}
-                  calibrationStep={engine.calibrationStep}
-                  lastGesture={engine.lastGesture}
-                  startCalibration={engine.startCalibration}
-                  recordCalibrationPoint={engine.recordCalibrationPoint}
-                  finishCalibration={engine.finishCalibration}
-                />
-              </motion.div>
-            )}
-            {screen === 'dashboard' && (
-              <motion.div key="dashboard" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <Dashboard
-                  trackingStatus={engine.trackingStatus}
-                  lastGesture={engine.lastGesture}
-                />
-              </motion.div>
-            )}
-            {screen === 'settings' && (
-              <motion.div key="settings" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <Settings
-                  mode={settings.mode}
-                  mapping={getCurrentMapping()}
-                  sensitivity={settings.sensitivity}
-                  blinkThresholdMs={settings.blinkThresholdMs}
-                  onModeChange={setMode}
-                  onActionChange={setOverride}
-                  onSensitivityChange={setSensitivity}
-                  onBlinkThresholdChange={setBlinkThreshold}
-                  onReset={resetToDefaults}
-                />
-              </motion.div>
-            )}
-          </AnimatePresence>
+                  <CalibrationWizard
+                    onComplete={handleCalibrationComplete}
+                    trackingStatus={engine.trackingStatus}
+                    calibrationStep={engine.calibrationStep}
+                    lastGesture={engine.lastGesture}
+                    startCalibration={engine.startCalibration}
+                    recordCalibrationPoint={engine.recordCalibrationPoint}
+                    finishCalibration={engine.finishCalibration}
+                  />
+                </motion.div>
+              )}
+
+              {screen === 'dashboard' && (
+                <motion.div key="dashboard" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                  <Dashboard
+                    trackingStatus={engine.trackingStatus}
+                    lastGesture={engine.lastGesture}
+                  />
+                </motion.div>
+              )}
+
+              {screen === 'settings' && (
+                <motion.div key="settings" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                  <Settings
+                    mode={settings.mode}
+                    mapping={getCurrentMapping()}
+                    sensitivity={settings.sensitivity}
+                    blinkThresholdMs={settings.blinkThresholdMs}
+                    onModeChange={setMode}
+                    onActionChange={setOverride}
+                    onSensitivityChange={setSensitivity}
+                    onBlinkThresholdChange={setBlinkThreshold}
+                    onReset={resetToDefaults}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </main>
       </div>
 

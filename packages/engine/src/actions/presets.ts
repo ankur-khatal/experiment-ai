@@ -1,0 +1,40 @@
+import type { GestureMapping, ModeType } from '../types.js';
+
+export const PRESETS: Record<ModeType, GestureMapping> = {
+  browsing: {
+    'blink': 'click',
+    'double-blink': 'right-click',
+    'nod-up': 'scroll-up',
+    'nod-down': 'scroll-down',
+    'tilt-left': 'back',
+    'tilt-right': 'forward',
+    'turn-left': 'none',
+    'turn-right': 'none',
+    'mouth-open': 'click',
+    'mouth-close': 'none',
+  },
+  reading: {
+    'blink': 'none',
+    'double-blink': 'none',
+    'nod-up': 'scroll-up',
+    'nod-down': 'scroll-down',
+    'tilt-left': 'none',
+    'tilt-right': 'none',
+    'turn-left': 'none',
+    'turn-right': 'none',
+    'mouth-open': 'none',
+    'mouth-close': 'none',
+  },
+  presentation: {
+    'blink': 'forward',
+    'double-blink': 'back',
+    'nod-up': 'none',
+    'nod-down': 'none',
+    'tilt-left': 'back',
+    'tilt-right': 'forward',
+    'turn-left': 'none',
+    'turn-right': 'none',
+    'mouth-open': 'none',
+    'mouth-close': 'none',
+  },
+};

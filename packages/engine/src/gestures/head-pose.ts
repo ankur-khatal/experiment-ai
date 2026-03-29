@@ -22,21 +22,29 @@ interface HeadPoseResult {
 interface HeadPoseConfig {
   deadZone: number;
   velocityExponent: number;
+  mirrored?: boolean;
 }
 
 export class HeadPoseDetector {
   private deadZone: number;
   private velocityExponent: number;
+  private mirrored: boolean;
   private headPosition: Point3D = { x: 0.5, y: 0.5, z: 0 };
 
   constructor(config: HeadPoseConfig) {
     this.deadZone = config.deadZone;
     this.velocityExponent = config.velocityExponent;
+    this.mirrored = config.mirrored ?? false;
   }
 
   update(input: HeadPoseInput): HeadPoseResult | null {
-    this.headPosition = { x: input.noseTip.x, y: input.noseTip.y, z: input.noseTip.z };
-    const dx = (input.noseTip.x - input.faceCenter.x) / input.faceWidth;
+    // Mirror X for selfie-view: when user looks left, nose moves right in frame
+    const mirroredX = this.mirrored ? (1 - input.noseTip.x) : input.noseTip.x;
+    this.headPosition = { x: mirroredX, y: input.noseTip.y, z: input.noseTip.z };
+
+    const noseX = this.mirrored ? (1 - input.noseTip.x) : input.noseTip.x;
+    const centerX = this.mirrored ? (1 - input.faceCenter.x) : input.faceCenter.x;
+    const dx = (noseX - centerX) / input.faceWidth;
     const dy = (input.noseTip.y - input.faceCenter.y) / input.faceHeight;
     const absDx = Math.abs(dx);
     const absDy = Math.abs(dy);

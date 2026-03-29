@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { GestureEvent, TrackingStatus, CalibrationStep, CalibrationPoint } from '@experiment-ai/engine';
 import { CalibrationDot } from './CalibrationDot';
@@ -135,7 +135,7 @@ function RangeMapping({ calibrationStep, recordedPositions, onStart, onRecord }:
       </div>
 
       {/* Dot arena */}
-      <div className="relative w-full aspect-video rounded-xl border border-zinc-700 bg-zinc-900 overflow-hidden">
+      <div className="dot-arena relative w-full aspect-video rounded-xl border border-zinc-700 bg-zinc-900 overflow-hidden">
         {started ? (
           <CalibrationDot
             position={currentPos}
@@ -256,6 +256,24 @@ export function CalibrationWizard({
   const [recordedPositions, setRecordedPositions] = useState<Set<CalibrationPoint['position']>>(
     new Set()
   );
+  const wizardRef = useRef<HTMLDivElement>(null);
+
+  // Enter/exit fullscreen for calibration steps
+  const enterFullscreen = useCallback(async () => {
+    try {
+      if (wizardRef.current && !document.fullscreenElement) {
+        await wizardRef.current.requestFullscreen();
+      }
+    } catch { /* fullscreen may be blocked */ }
+  }, []);
+
+  const exitFullscreen = useCallback(async () => {
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      }
+    } catch { /* may already be exited */ }
+  }, []);
 
   // Track recorded calibration points from engine step changes
   useEffect(() => {
@@ -272,6 +290,11 @@ export function CalibrationWizard({
     });
   }, [calibrationStep]);
 
+  // Exit fullscreen on unmount
+  useEffect(() => {
+    return () => { exitFullscreen(); };
+  }, [exitFullscreen]);
+
   // Auto-advance from Range Mapping once all 5 points are recorded
   useEffect(() => {
     if (step === 1 && recordedPositions.size === DOT_POSITIONS.length) {
@@ -282,6 +305,10 @@ export function CalibrationWizard({
 
   const goTo = (next: number) => {
     setDirection(next > step ? 1 : -1);
+    // Enter fullscreen for Range Mapping (step 1) and Gesture Practice (step 2)
+    if (next === 1 || next === 2) enterFullscreen();
+    // Exit fullscreen when going to Complete or back to Setup
+    if (next === 0 || next === 3) exitFullscreen();
     setStep(next);
   };
 
@@ -305,7 +332,7 @@ export function CalibrationWizard({
   };
 
   return (
-    <div className="w-full max-w-lg mx-auto flex flex-col gap-6">
+    <div ref={wizardRef} className="calibration-wizard w-full max-w-lg mx-auto flex flex-col gap-6">
       {/* Progress bar */}
       <div>
         <div className="flex justify-between items-center mb-2">

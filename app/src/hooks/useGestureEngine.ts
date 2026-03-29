@@ -32,7 +32,7 @@ export function useGestureEngine(): UseGestureEngineReturn {
   const rafRef = useRef<number>(0);
 
   const blinkRef = useRef(new BlinkDetector({ thresholdMs: 400, cooldownMs: 300 }));
-  const headPoseRef = useRef(new HeadPoseDetector({ deadZone: 0.05, velocityExponent: 2 }));
+  const headPoseRef = useRef(new HeadPoseDetector({ deadZone: 0.05, velocityExponent: 2, mirrored: true }));
   const mouthRef = useRef(new MouthDetector({ openThreshold: 0.5, debounceMs: 200 }));
   const dispatcherRef = useRef(new ActionDispatcher('browsing'));
   const calibratorRef = useRef<Calibrator | null>(null);

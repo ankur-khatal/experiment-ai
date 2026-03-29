@@ -92,4 +92,20 @@ describe('HeadPoseDetector', () => {
     expect(position.y).toBeCloseTo(0.40, 1);
     expect(position.z).toBeCloseTo(-0.1, 1);
   });
+
+  it('resets head position to center', () => {
+    detector.update({
+      noseTip: { x: 0.80, y: 0.30, z: -0.2 },
+      faceCenter: { x: 0.50, y: 0.50, z: 0 },
+      faceWidth: 0.3,
+      faceHeight: 0.4,
+    });
+
+    detector.reset();
+
+    const position = detector.getHeadPosition();
+    expect(position.x).toBeCloseTo(0.5, 1);
+    expect(position.y).toBeCloseTo(0.5, 1);
+    expect(position.z).toBeCloseTo(0, 1);
+  });
 });

@@ -65,4 +65,22 @@ describe('BlinkDetector', () => {
     const result = detector.update({ eyeBlinkLeft: 0.1, eyeBlinkRight: 0.1 }, now + 250);
     expect(result).not.toBeNull();
   });
+
+  it('resets all internal state', () => {
+    const now = 1000;
+    // Build up some state — detect a blink
+    detector.update({ eyeBlinkLeft: 0.8, eyeBlinkRight: 0.8 }, now);
+    detector.update({ eyeBlinkLeft: 0.8, eyeBlinkRight: 0.8 }, now + 400);
+    detector.update({ eyeBlinkLeft: 0.1, eyeBlinkRight: 0.1 }, now + 450);
+
+    // Reset clears everything
+    detector.reset();
+
+    // After reset, a new blink should work as if fresh (no cooldown, no double-blink)
+    detector.update({ eyeBlinkLeft: 0.8, eyeBlinkRight: 0.8 }, now + 500);
+    detector.update({ eyeBlinkLeft: 0.8, eyeBlinkRight: 0.8 }, now + 900);
+    const result = detector.update({ eyeBlinkLeft: 0.1, eyeBlinkRight: 0.1 }, now + 950);
+    expect(result).not.toBeNull();
+    expect(result!.type).toBe('blink'); // Not double-blink, because reset cleared history
+  });
 });

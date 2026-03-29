@@ -62,7 +62,7 @@ export function useGestureEngine(): UseGestureEngineReturn {
   }, []);
 
   const stop = useCallback(() => {
-    send({ type: 'stop' });
+    try { send({ type: 'stop' }); } catch { /* worker may already be terminated */ }
     workerRef.current?.terminate();
     workerRef.current = null;
     setIsRunning(false);

@@ -25,15 +25,20 @@ export function useCamera(): UseCameraReturn {
         audio: false,
       });
       streamRef.current = stream;
+
+      // Video element is always in DOM now, so ref should be available
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
       }
-      if (canvasRef.current) {
+
+      // Only transfer to offscreen canvas once
+      if (canvasRef.current && !offscreenCanvasRef.current) {
         canvasRef.current.width = 320;
         canvasRef.current.height = 240;
         offscreenCanvasRef.current = canvasRef.current.transferControlToOffscreen();
       }
+
       setIsActive(true);
       setError(null);
     } catch (err) {

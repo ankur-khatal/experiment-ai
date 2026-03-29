@@ -1,0 +1,8 @@
+{
+  "name": "experiment-ai",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "app"
+  ]
+}

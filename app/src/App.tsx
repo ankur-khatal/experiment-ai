@@ -82,8 +82,10 @@ export function App() {
 
   const handleStartCamera = useCallback(async () => {
     await camera.start();
-    const canvas = camera.getOffscreenCanvas();
-    if (canvas) engine.start(canvas);
+    // Pass the video element directly — MediaPipe runs on main thread
+    if (camera.videoRef.current) {
+      await engine.start(camera.videoRef.current);
+    }
   }, [camera, engine]);
 
   const handleToggle = useCallback(() => {
